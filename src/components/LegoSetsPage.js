@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import LegoSet from './LegoSet';
 
-const LegoSetList = () => {
+const LegoSetsPage = () => {
     const [legoSets, setLegoSets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -37,4 +37,4 @@ const LegoSetList = () => {
     );
 };
 
-export default LegoSetList;
+export default LegoSetsPage;
