@@ -1,91 +1,86 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom';
-import Home from './components/Home';
-import LegoSetsPage from './components/LegoSetsPage';
-import Login from './components/Login';
-import Register from './components/Register';
-import ProtectedRoute from './components/ProtectedRoute';
-import './styles/App.css';
+
+// Import pages
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import HomePage from './pages/HomePage';
+import MyLegoSetsPage from './pages/MyLegoSetsPage';
+import AddLegoSetPage from './pages/AddLegoSetPage';
+
+import './App.css';
+
+export const AuthContext = createContext();
 
 const App = () => {
-    const [authenticated, setAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        const isAuthenticated = localStorage.getItem('authenticated') === 'true';
-        setAuthenticated(isAuthenticated);
-        setLoading(false);
+        const storedUser = localStorage.getItem("user");
+        if (storedUser && storedUser !== "undefined") {
+            setUser(JSON.parse(storedUser));
+        }
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('authenticated');
-        localStorage.removeItem('username');
-        setAuthenticated(false);
+    const login = (userData) => {
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+    }
+
+    const logout = () => {
+        setUser(null);
+        localStorage.removeItem("user");
     };
 
-    if (loading) {
-        return <div>Loading...</div>;
+    const PrivateRoute = ({children}) => {
+        return user ? children : <Navigate to="/login"/>;
     }
 
     return (
-        <Router>
-            <div className="app-container">
-                {authenticated && (
-                    <nav className="navbar">
-                        <ul>
-                            <li>
-                                <Link to="/">Home</Link>
-                            </li>
-                            <li>
-                                <Link to="/legosets">Lego Sets</Link>
-                            </li>
-                            <li className="logout-button">
-                                <button onClick={handleLogout}>Logout</button>
-                            </li>
-                        </ul>
+        <AuthContext.Provider value={{user, login, logout}}>
+            <Router>
+                {user && (
+                    <nav style={{padding: '10px', backgroundColor: '#eee'}}>
+                        <Link to="/home" style={{marginRight: '15px'}}>Home</Link>
+                        <Link to="/my-lego-sets" style={{marginRight: '15px'}}>Your Lego Sets</Link>
+                        <Link to="/add-set" style={{marginRight: '15px'}}>Add Set</Link>
+                        <button onClick={logout}>Logout</button>
                     </nav>
                 )}
 
                 <Routes>
+                    <Route path="/login" element={<LoginPage onLogin={login}/>}/>
+                    <Route path="/register" element={<RegisterPage/>}/>
+
                     <Route
-                        path="/"
+                        path="/home"
                         element={
-                            <ProtectedRoute authenticated={authenticated}>
-                                <Home />
-                            </ProtectedRoute>
+                            <PrivateRoute>
+                                <HomePage/>
+                            </PrivateRoute>
                         }
                     />
                     <Route
-                        path="/legosets"
+                        path="/my-lego-sets"
                         element={
-                            <ProtectedRoute authenticated={authenticated}>
-                                <LegoSetsPage />
-                            </ProtectedRoute>
+                            <PrivateRoute>
+                                <MyLegoSetsPage/>
+                            </PrivateRoute>
                         }
                     />
                     <Route
-                        path="/login"
+                        path="/add-set"
                         element={
-                            authenticated ?
-                                <Navigate to="/" /> :
-                                <Login setAuthenticated={setAuthenticated} />
+                            <PrivateRoute>
+                                <AddLegoSetPage/>
+                            </PrivateRoute>
                         }
                     />
-                    <Route
-                        path="/register"
-                        element={
-                            authenticated ?
-                                <Navigate to="/" /> :
-                                <Register />
-                        }
-                    />
-                    <Route
-                        path="*"
-                        element={authenticated ? <Navigate to="/" /> : <Navigate to="/login" />}
-                    />
+
+                    <Route path="*" element={<Navigate to="/login" />}/>
                 </Routes>
-            </div>
-        </Router>
+            </Router>
+        </AuthContext.Provider>
     );
 };
 
