@@ -1,11 +1,26 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/legosets';
+const API_URL = 'http://localhost:8080/lego-sets';
 
-export const getAllLegoSets = () => axios.get(API_URL);
+export const addLegoSetByNumber = async (setNumber) => {
+    try {
+        const response = await axios.post(API_URL, { setNumber });
+        return response.data;
+    } catch (error) {
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error("Failed to add Lego Set. Please try again.");
+    }
+};
 
-export const getLegoSetsByUser = (userId) => axios.get(`${API_URL}/${userId}`);
-
-export const addLegoSet = (legoSetData) => axios.post(API_URL, legoSetData);
+export const getMyLegoSets = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/my-sets`);
+        return response.data;
+    } catch (error) {
+        throw new Error("Failed to fetch your Lego Sets.");
+    }
+};
 
 // TODO: Implement the updateLegoSet and deleteLegoSet functions

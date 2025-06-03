@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom';
+import { getCurrentUser, logout as logoutAPI } from './services/AuthService';
 
 // Import pages
 import LoginPage from './pages/LoginPage';
@@ -14,26 +15,44 @@ export const AuthContext = createContext();
 
 const App = () => {
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser && storedUser !== "undefined") {
-            setUser(JSON.parse(storedUser));
-        }
+        const checkAuth = async () => {
+            try {
+                const currentUser = await getCurrentUser();
+                if (currentUser) {
+                    setUser(currentUser);
+                }
+            } catch (error ) {
+                localStorage.removeItem('token');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        checkAuth();
     }, []);
 
     const login = (userData) => {
         setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
     }
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem("user");
+    const logout = async () => {
+        try {
+            await logoutAPI();
+        } catch (error) {
+        } finally {
+            setUser(null);
+        }
     };
 
     const PrivateRoute = ({children}) => {
         return user ? children : <Navigate to="/login"/>;
+    }
+
+    if (loading) {
+        return <div>Loading...</div>;
     }
 
     return (
@@ -49,7 +68,7 @@ const App = () => {
                 )}
 
                 <Routes>
-                    <Route path="/login" element={<LoginPage onLogin={login}/>}/>
+                    <Route path="/login" element={<LoginPage />}/>
                     <Route path="/register" element={<RegisterPage/>}/>
 
                     <Route

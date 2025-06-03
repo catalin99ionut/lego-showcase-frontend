@@ -1,93 +1,117 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { addLegoSet } from '../services/LegoSetService';
+import { addLegoSetByNumber } from '../services/LegoSetService';
 
 import '../styles.css';
 
 const AddLegoSetPage = () => {
-    const [name, setName] = useState('');
-    const [collection, setCollection] = useState('');
-    const [pieceCount, setPieceCount] = useState('');
+    const [setNumber, setSetNumber] = useState('');
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
     const navigate = useNavigate();
+
+    const handleInputChange = (e) => {
+        if (success) setSuccess(null);
+        if (error) setError(null);
+        if (previewData) setPreviewData(previewData);
+        setSetNumber(e.target.value);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!name || !collection || !pieceCount) {
-            setError('Please fill all fields.');
+        if (!setNumber.trim()) {
+            setError('Please enter a valid Lego set number.');
             return;
         }
 
-        if (isNaN(pieceCount) || pieceCount <= 0) {
-            setError('Piece count must be a positive number.');
-            return;
-        }
+        setIsLoading(true);
+        setError(null);
 
         try {
-            const newSet = {
-                name,
-                collection,
-                pieceCount: Number(pieceCount),
-            };
+            const addedSet = await addLegoSetByNumber(setNumber.trim());
+            setPreviewData(addedSet);
+            setSuccess('Lego Set added successfully! You can now view it in your collection.');
+            setSetNumber('');
 
-            await addLegoSet(newSet);
-            setSuccess('Lego Set added successfully!');
-
-            setName('');
-            setCollection('');
-            setPieceCount('');
+            setTimeout(() => {
+                navigate('/my-lego-sets');
+            }, 3000);
         } catch (error) {
             setError("Failed to add Lego Set. Please try again.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
         <div className="page-container">
-            <h2 className="page-title">Add Lego Set</h2>
+            <h2 className="page-title">Add LEGO Set</h2>
 
             {error && <p className="error">{error}</p>}
             {success && <p style={{ color: 'green', textAlign: 'center' }}>{success}</p>}
 
             <form className="add-set-form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label htmlFor="name">Name:</label>
+                    <label htmlFor="setNumber">LEGO Set Number:</label>
                     <input
-                        id="name"
+                        id="setNumber"
                         type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={setNumber}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 75192"
                         required
                         className="form-input"
+                        disabled={isLoading}
                     />
+                    <small style={{ color: '#666', fontSize: '0.9em' }}>
+                        Enter the official LEGO set number (found on the box)
+                    </small>
                 </div>
-                <div className="form-group">
-                    <label htmlFor="collection">Collection:</label>
-                    <input
-                        id="collection"
-                        type="text"
-                        value={collection}
-                        onChange={(e) => setCollection(e.target.value)}
-                        required
-                        className="form-input"
-                    />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="pieceCount">Piece Count:</label>
-                    <input
-                        id="pieceCount"
-                        type="number"
-                        value={pieceCount}
-                        onChange={(e) => setPieceCount(e.target.value)}
-                        required
-                        min="1"
-                        className="form-input"
-                    />
-                </div>
-                <button type="submit" className="primary-button">Add Set</button>
+
+                <button type="submit" className="primary-button" disabled={isLoading}>
+                    {isLoading ? 'Validating & Adding...' : 'Add Set'}
+                </button>
             </form>
+
+            {previewData && (
+                <div style={{
+                    marginTop: '20px',
+                    padding: '15px',
+                    border: '1px solid #ddd',
+                    borderRadius: '5px',
+                    backgroundColor: '#f9f9f9'
+                }}>
+                    <h3>Added to Your Collection:</h3>
+                    <p><strong>Set Number:</strong> {previewData.setNumber}</p>
+                    <p><strong>Name:</strong> {previewData.name}</p>
+                    <p><strong>Collection:</strong> {previewData.collection}</p>
+                    <p><strong>Pieces:</strong> {previewData.pieceCount}</p>
+                    <p><strong>Year:</strong> {previewData.year}</p>
+                    {previewData.imageUrl && (
+                        <img
+                            src={previewData.imageUrl}
+                            alt={previewData.name}
+                            style={{ maxWidth: '200px', height: 'auto'}}
+                        />
+                    )}
+                </div>
+            )}
+
+            {!isLoading && (
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => navigate('/my-lego-sets')}
+                    >
+                        Back to Your Collection
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
